@@ -33,7 +33,10 @@
       <div class="input-panel" id="granthaPanel">
         <div class="panel-header">
           <span class="script-badge badge-grantha" aria-label="Grantha script">𑌗𑍍𑌰𑌨𑍍𑌥 &nbsp;Grantha</span>
-          <button id="clearGrantha" class="btn-clear" aria-label="Clear Grantha input">✕ Clear</button>
+          <div class="panel-actions">
+            <button id="copyGrantha" class="btn-copy" aria-label="Copy Grantha text">⧉ Copy</button>
+            <button id="clearGrantha" class="btn-clear" aria-label="Clear Grantha input">✕ Clear</button>
+          </div>
         </div>
         <textarea
           id="granthaInput"
@@ -47,18 +50,14 @@
         <div class="panel-hint">Paste or type Grantha Unicode text</div>
       </div>
 
-      <!-- Divider with swap arrows -->
-      <div class="swap-divider" aria-hidden="true">
-        <div class="swap-line"></div>
-        <span class="swap-arrows">⇄</span>
-        <div class="swap-line"></div>
-      </div>
-
       <!-- Devanagari input -->
       <div class="input-panel" id="devanagariPanel">
         <div class="panel-header">
           <span class="script-badge badge-devanagari" aria-label="Devanagari script">देव &nbsp;Devanagari</span>
-          <button id="clearDevanagari" class="btn-clear" aria-label="Clear Devanagari input">✕ Clear</button>
+          <div class="panel-actions">
+            <button id="copyDevanagari" class="btn-copy" aria-label="Copy Devanagari text">⧉ Copy</button>
+            <button id="clearDevanagari" class="btn-clear" aria-label="Clear Devanagari input">✕ Clear</button>
+          </div>
         </div>
         <textarea
           id="devanagariInput"
@@ -70,6 +69,48 @@
           aria-label="Devanagari script input"
         ></textarea>
         <div class="panel-hint">Paste or type Devanagari Unicode text</div>
+      </div>
+
+      <!-- Tamil input -->
+      <div class="input-panel" id="tamilPanel">
+        <div class="panel-header">
+          <span class="script-badge badge-tamil" aria-label="Tamil script">தமிழ் &nbsp;Tamil</span>
+          <div class="panel-actions">
+            <button id="copyTamil" class="btn-copy" aria-label="Copy Tamil text">⧉ Copy</button>
+            <button id="clearTamil" class="btn-clear" aria-label="Clear Tamil input">✕ Clear</button>
+          </div>
+        </div>
+        <textarea
+          id="tamilInput"
+          class="script-textarea tamil-textarea"
+          placeholder="நமஸ்தே …"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          aria-label="Tamil script input"
+        ></textarea>
+        <div class="panel-hint">Paste or type Tamil Unicode text</div>
+      </div>
+
+      <!-- English input -->
+      <div class="input-panel" id="englishPanel">
+        <div class="panel-header">
+          <span class="script-badge badge-english" aria-label="English transliteration">ABC &nbsp;English</span>
+          <div class="panel-actions">
+            <button id="copyEnglish" class="btn-copy" aria-label="Copy English text">⧉ Copy</button>
+            <button id="clearEnglish" class="btn-clear" aria-label="Clear English input">✕ Clear</button>
+          </div>
+        </div>
+        <textarea
+          id="englishInput"
+          class="script-textarea english-textarea"
+          placeholder="namaste …"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          aria-label="English script input"
+        ></textarea>
+        <div class="panel-hint">Type English / Phonetic Roman text</div>
       </div>
 
     </section>
@@ -85,26 +126,6 @@
           <button id="copyIAST" class="btn-copy" aria-label="Copy IAST text">⧉ Copy</button>
         </div>
         <div id="iastOutput" class="card-body is-empty" aria-live="polite">—</div>
-      </article>
-
-      <!-- Tamil card -->
-      <article class="output-card card-tamil">
-        <div class="card-header">
-          <span class="card-label">தமிழ் Tamil</span>
-          <span class="card-desc">Tamil Unicode script</span>
-          <button id="copyTamil" class="btn-copy" aria-label="Copy Tamil text">⧉ Copy</button>
-        </div>
-        <div id="tamilOutput" class="card-body is-empty" aria-live="polite">—</div>
-      </article>
-
-      <!-- English card -->
-      <article class="output-card card-english">
-        <div class="card-header">
-          <span class="card-label">English</span>
-          <span class="card-desc">Simple ASCII transliteration</span>
-          <button id="copyEnglish" class="btn-copy" aria-label="Copy English transliteration">⧉ Copy</button>
-        </div>
-        <div id="englishOutput" class="card-body is-empty" aria-live="polite">—</div>
       </article>
 
     </section>
@@ -145,27 +166,27 @@
         </button>
 
         <button class="sample-btn" id="s4"
+                data-tamil="கர்தா" aria-label="kartha">
+          <span class="sample-script sample-t">கர்தா</span>
+          <span class="sample-label">kartha</span>
+        </button>
+
+        <button class="sample-btn" id="s5"
                 data-devanagari="सरस्वती" aria-label="saraswati">
           <span class="sample-script sample-d">सरस्वती</span>
           <span class="sample-label">sarasvatī</span>
         </button>
 
-        <button class="sample-btn" id="s5"
-                data-devanagari="भगवद्गीता" aria-label="bhagavadgita">
-          <span class="sample-script sample-d">भगवद्गीता</span>
-          <span class="sample-label">bhagavadgītā</span>
-        </button>
-
         <button class="sample-btn" id="s6"
-                data-grantha="𑌶𑌿𑌵𑌾𑌯" aria-label="shivaya">
-          <span class="sample-script sample-g">𑌶𑌿𑌵𑌾𑌯</span>
+                data-english="shivaya" aria-label="shivaya">
+          <span class="sample-script sample-en">shivaya</span>
           <span class="sample-label">śivāya</span>
         </button>
 
         <button class="sample-btn" id="s7"
-                data-devanagari="श्रीमत्" aria-label="shrimat">
-          <span class="sample-script sample-d">श्रीमत्</span>
-          <span class="sample-label">śrīmat</span>
+                data-tamil="சிவாய" aria-label="shivaya tamil">
+          <span class="sample-script sample-t">சிவாய</span>
+          <span class="sample-label">śivāya (Tamil)</span>
         </button>
 
         <button class="sample-btn" id="s8"

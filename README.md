@@ -12,13 +12,8 @@
 
 ## ✨ Features
 
-- 🔄 **Bidirectional Translation**: Real-time conversion between Grantha and Devanagari Unicode scripts.
-- 📜 **Multi-Script Outputs**: Simultaneously generates:
-  - **Grantha** (`𑌗𑍍𑌰𑌨𑍍𑌥`)
-  - **Devanagari** (`ग्रन्थ`)
-  - **IAST** (`grantha` with Sanskrit diacritics)
-  - **Tamil Script** (`க்ரந்த` using Grantha-Tamil hybrid conventions)
-  - **English Transliteration** (`grantha` in plain ASCII)
+- 🔄 **4-Way Bidirectional Translation**: Real-time conversion between Grantha, Devanagari, Tamil, and English/Phonetic Roman scripts.
+- 📜 **Multi-Script Support**: Type in **Grantha**, **Devanagari**, **Tamil**, or **English** and watch all other scripts and IAST update in real time.
 - 🌓 **Theme Toggle**: Sleek Dark & Light modes with persistent preference.
 - ⚡ **Zero Dependencies**: Pure client-side HTML, CSS, and Vanilla JS. Runs instantly on GitHub Pages or locally.
 - 📱 **Fully Responsive**: Optimized for desktops, tablets, and mobile devices.
@@ -28,9 +23,9 @@
 ## 🛠️ Usage
 
 1. Open `index.html` in any modern web browser or deploy directly to **GitHub Pages**.
-2. Type or paste **Grantha** text in the Grantha input field, or **Devanagari** text in the Devanagari input field.
-3. The opposite script and all transliterations (IAST, Tamil, English) auto-update instantly.
-4. Click **Copy** on any output card to copy the transliterated text.
+2. Type or paste text in any of the 4 input panels (**Grantha**, **Devanagari**, **Tamil**, or **English**).
+3. All other script panels and the **IAST** card auto-update instantly.
+4. Click **Copy** on any panel or card to copy the transliterated text.
 
 ---
 

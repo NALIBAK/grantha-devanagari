@@ -385,6 +385,34 @@ const Translator = (() => {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  //  Tamil → IAST Maps
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const T_VIRAMA   = '்';
+  const T_VISARGA  = 'ஃ';
+  const T_OM       = 'ௐ';
+
+  const T_VOWELS = new Map([
+    ['அ','a'], ['ஆ','ā'], ['இ','i'], ['ஈ','ī'],
+    ['உ','u'], ['ஊ','ū'], ['எ','e'], ['ஏ','e'],
+    ['ஐ','ai'],['ஒ','o'], ['ஓ','o'], ['ஔ','au'],
+  ]);
+
+  const T_MATRAS = new Map([
+    ['ா','ā'],  ['ி','i'],  ['ீ','ī'],  ['ு','u'],
+    ['ூ','ū'],  ['ெ','e'],  ['ே','e'],  ['ை','ai'],
+    ['ொ','o'],  ['ோ','o'],  ['ௌ','au'],
+  ]);
+
+  const T_CONSONANTS = new Map([
+    ['க','k'],  ['ங','ṅ'],  ['ச','c'],  ['ஞ','ñ'],
+    ['ட','ṭ'],  ['ண','ṇ'],  ['த','t'],  ['ந','n'],  ['ன','n'],
+    ['ப','p'],  ['ம','m'],  ['ய','y'],  ['ர','r'],  ['ற','r'],
+    ['ல','l'],  ['ள','ḷc'], ['ழ','ḻ'],  ['வ','v'],
+    ['ஶ','ś'],  ['ஷ','ṣ'],  ['ஸ','s'],  ['ஹ','h'],  ['ஜ','j'],
+  ]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   //  Public API
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -406,6 +434,163 @@ const Translator = (() => {
     return _render(tokens);
   }
 
+  function fromTamil(text) {
+    if (!text || !text.trim()) return _empty();
+    const tokens = tokenizeTamil(text);
+    return _render(tokens);
+  }
+
+  function tokenizeTamil(text) {
+    const tokens = [];
+    const chars  = [...text];
+    const n      = chars.length;
+    let i = 0;
+
+    while (i < n) {
+      const ch = chars[i];
+
+      if (ch === T_VISARGA) { tokens.push({ type:'modifier', value:'ḥ' }); i++; continue; }
+      if (ch === T_OM)      { tokens.push({ type:'special',  value:'oṃ' }); i++; continue; }
+
+      if (T_CONSONANTS.has(ch)) {
+        const consList = [T_CONSONANTS.get(ch)];
+        i++;
+
+        while (
+          i < n &&
+          chars[i] === T_VIRAMA &&
+          i + 1 < n &&
+          T_CONSONANTS.has(chars[i + 1])
+        ) {
+          i++;
+          consList.push(T_CONSONANTS.get(chars[i]));
+          i++;
+        }
+
+        let vowel = 'a';
+        if (i < n && chars[i] === T_VIRAMA) {
+          vowel = '';
+          i++;
+        } else if (i < n && T_MATRAS.has(chars[i])) {
+          vowel = T_MATRAS.get(chars[i]);
+          i++;
+        }
+
+        tokens.push({ type:'syllable', consonants: consList, vowel });
+        continue;
+      }
+
+      if (T_VOWELS.has(ch)) {
+        tokens.push({ type:'vowel', vowel: T_VOWELS.get(ch) });
+        i++; continue;
+      }
+
+      if (ch === T_VIRAMA) { i++; continue; }
+
+      tokens.push({ type:'other', value: ch });
+      i++;
+    }
+
+    return tokens;
+  }
+
+  function fromEnglish(text) {
+    if (!text || !text.trim()) return _empty();
+    const tokens = tokenizeEnglish(text);
+    return _render(tokens);
+  }
+
+  function tokenizeEnglish(text) {
+    const tokens = [];
+    const n = text.length;
+    let i = 0;
+
+    function matchSub(idx, list) {
+      const sub = text.substring(idx).toLowerCase();
+      for (const [pattern, key] of list) {
+        if (sub.startsWith(pattern)) {
+          return { length: pattern.length, key };
+        }
+      }
+      return null;
+    }
+
+    const CONS_PATTERNS = [
+      ['ksh', ['k','ṣ']], ['kṣ', ['k','ṣ']], ['gny', ['j','ñ']], ['jñ', ['j','ñ']],
+      ['chh', ['ch']], ['kh', ['kh']], ['gh', ['gh']], ['ch', ['c']], ['jh', ['jh']],
+      ['th', ['th']], ['dh', ['dh']], ['ph', ['ph']], ['bh', ['bh']], ['sh', ['ś']],
+      ['zh', ['ḻ']], ['ng', ['ṅ']], ['nj', ['ñ']],
+      ['k', ['k']], ['g', ['g']], ['c', ['c']], ['j', ['j']],
+      ['ṭ', ['ṭ']], ['ḍ', ['ḍ']], ['ṇ', ['ṇ']], ['t', ['t']], ['d', ['d']],
+      ['n', ['n']], ['p', ['p']], ['b', ['b']], ['m', ['m']], ['y', ['y']],
+      ['r', ['r']], ['l', ['l']], ['v', ['v']], ['w', ['v']],
+      ['ś', ['ś']], ['ṣ', ['ṣ']], ['s', ['s']], ['h', ['h']], ['q', ['k']], ['z', ['s']]
+    ];
+
+    const VOWEL_PATTERNS = [
+      ['aa', 'ā'], ['ā', 'ā'], ['ee', 'ī'], ['ii', 'ī'], ['ī', 'ī'],
+      ['oo', 'ū'], ['uu', 'ū'], ['ū', 'ū'], ['ai', 'ai'], ['au', 'au'],
+      ['ṛ', 'ṛ'], ['ri', 'ṛ'], ['ru', 'ṛ'],
+      ['a', 'a'], ['i', 'i'], ['u', 'u'], ['e', 'e'], ['ē', 'e'], ['o', 'o'], ['ō', 'o']
+    ];
+
+    while (i < n) {
+      const lower = text.substring(i).toLowerCase();
+      if (lower.startsWith('om') && (i + 2 === n || !/[a-z]/i.test(text[i + 2]))) {
+        tokens.push({ type: 'special', value: 'oṃ' });
+        i += 2;
+        continue;
+      }
+      if (lower.startsWith('aum') && (i + 3 === n || !/[a-z]/i.test(text[i + 3]))) {
+        tokens.push({ type: 'special', value: 'oṃ' });
+        i += 3;
+        continue;
+      }
+
+      let cMatch = matchSub(i, CONS_PATTERNS);
+      if (cMatch) {
+        const consList = [...cMatch.key];
+        i += cMatch.length;
+
+        while (i < n) {
+          const nextC = matchSub(i, CONS_PATTERNS);
+          if (nextC) {
+            const vCheck = matchSub(i, VOWEL_PATTERNS);
+            if (vCheck && vCheck.key === 'ṛ' && (text.substring(i, i+2).toLowerCase()==='ri' || text.substring(i, i+2).toLowerCase()==='ru')) {
+              break;
+            }
+            consList.push(...nextC.key);
+            i += nextC.length;
+          } else {
+            break;
+          }
+        }
+
+        let vowel = '';
+        const vMatch = matchSub(i, VOWEL_PATTERNS);
+        if (vMatch) {
+          vowel = vMatch.key;
+          i += vMatch.length;
+        }
+
+        tokens.push({ type: 'syllable', consonants: consList, vowel });
+        continue;
+      }
+
+      const vMatch = matchSub(i, VOWEL_PATTERNS);
+      if (vMatch) {
+        tokens.push({ type: 'vowel', vowel: vMatch.key });
+        i += vMatch.length;
+        continue;
+      }
+
+      tokens.push({ type: 'other', value: text[i] });
+      i++;
+    }
+
+    return tokens;
+  }
+
   function _render(tokens) {
     return {
       grantha:    renderGrantha(tokens),
@@ -420,5 +605,6 @@ const Translator = (() => {
     return { grantha:'', devanagari:'', iast:'', tamil:'', english:'' };
   }
 
-  return { fromGrantha, fromDevanagari };
+  return { fromGrantha, fromDevanagari, fromTamil, fromEnglish };
 })();
+

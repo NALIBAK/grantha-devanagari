@@ -1,11 +1,11 @@
 /**
  * app.js
- * UI wiring for the Grantha ↔ Devanagari Translator.
+ * UI wiring for the Grantha ↔ Devanagari ↔ Tamil ↔ English Translator.
  *
  * Responsibilities:
- *   - Bidirectional sync between the two input textareas
- *   - Updating the three output cards (IAST, Tamil, English)
- *   - Copy-to-clipboard for each card
+ *   - Real-time 4-way bidirectional sync between Grantha, Devanagari, Tamil, and English textareas
+ *   - Updating the IAST output card
+ *   - Copy-to-clipboard for each script panel and IAST
  *   - Sample-word buttons
  *   - Dark / light theme toggle (persisted in localStorage)
  */
@@ -15,41 +15,39 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── DOM references ──────────────────────────────────────────────────────────
   const granthaInput    = document.getElementById('granthaInput');
   const devanagariInput = document.getElementById('devanagariInput');
+  const tamilInput      = document.getElementById('tamilInput');
+  const englishInput    = document.getElementById('englishInput');
   const iastOutput      = document.getElementById('iastOutput');
-  const tamilOutput     = document.getElementById('tamilOutput');
-  const englishOutput   = document.getElementById('englishOutput');
+
   const themeToggle     = document.getElementById('themeToggle');
+
   const clearGrantha    = document.getElementById('clearGrantha');
   const clearDevanagari = document.getElementById('clearDevanagari');
+  const clearTamil      = document.getElementById('clearTamil');
+  const clearEnglish    = document.getElementById('clearEnglish');
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
   /** Trigger a brief opacity-flash animation on an element. */
   function flash(el) {
+    if (!el) return;
     el.classList.remove('flash');
     void el.offsetWidth;            // force reflow so CSS animation restarts
     el.classList.add('flash');
   }
 
-  /** Render translation results into the three output cards. */
+  /** Render translation results into the output card. */
   function applyResult(result) {
-    const cards = [
-      { el: iastOutput,    text: result.iast },
-      { el: tamilOutput,   text: result.tamil },
-      { el: englishOutput, text: result.english },
-    ];
-
-    for (const { el, text } of cards) {
-      const isEmpty = !text || !text.trim();
-      el.textContent = isEmpty ? '—' : text;
-      el.classList.toggle('is-empty', isEmpty);
-      flash(el);
-    }
+    if (!iastOutput) return;
+    const text = result.iast;
+    const isEmpty = !text || !text.trim();
+    iastOutput.textContent = isEmpty ? '—' : text;
+    iastOutput.classList.toggle('is-empty', isEmpty);
+    flash(iastOutput);
   }
 
-  // ── Bidirectional Translation ───────────────────────────────────────────────
-  // The `busy` flag prevents the pair of `input` listeners from triggering
-  // each other in an infinite loop when one textarea updates the other.
+  // ── 4-Way Bidirectional Translation ─────────────────────────────────────────
+  // The `busy` flag prevents input listeners from triggering each other recursively.
 
   let busy = false;
 
@@ -59,6 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const result = Translator.fromGrantha(granthaInput.value);
       devanagariInput.value = result.devanagari;
+      tamilInput.value      = result.tamil;
+      englishInput.value    = result.english;
       applyResult(result);
     } finally {
       busy = false;
@@ -71,6 +71,36 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const result = Translator.fromDevanagari(devanagariInput.value);
       granthaInput.value = result.grantha;
+      tamilInput.value   = result.tamil;
+      englishInput.value = result.english;
+      applyResult(result);
+    } finally {
+      busy = false;
+    }
+  });
+
+  tamilInput.addEventListener('input', () => {
+    if (busy) return;
+    busy = true;
+    try {
+      const result = Translator.fromTamil(tamilInput.value);
+      granthaInput.value    = result.grantha;
+      devanagariInput.value = result.devanagari;
+      englishInput.value    = result.english;
+      applyResult(result);
+    } finally {
+      busy = false;
+    }
+  });
+
+  englishInput.addEventListener('input', () => {
+    if (busy) return;
+    busy = true;
+    try {
+      const result = Translator.fromEnglish(englishInput.value);
+      granthaInput.value    = result.grantha;
+      devanagariInput.value = result.devanagari;
+      tamilInput.value      = result.tamil;
       applyResult(result);
     } finally {
       busy = false;
@@ -82,17 +112,22 @@ document.addEventListener('DOMContentLoaded', () => {
   function clearAll(focusTarget) {
     granthaInput.value    = '';
     devanagariInput.value = '';
-    applyResult({ iast: '', tamil: '', english: '' });
-    focusTarget.focus();
+    tamilInput.value      = '';
+    englishInput.value    = '';
+    applyResult({ iast: '' });
+    if (focusTarget) focusTarget.focus();
   }
 
-  clearGrantha.addEventListener('click',    () => clearAll(granthaInput));
-  clearDevanagari.addEventListener('click', () => clearAll(devanagariInput));
+  if (clearGrantha)    clearGrantha.addEventListener('click',    () => clearAll(granthaInput));
+  if (clearDevanagari) clearDevanagari.addEventListener('click', () => clearAll(devanagariInput));
+  if (clearTamil)      clearTamil.addEventListener('click',      () => clearAll(tamilInput));
+  if (clearEnglish)    clearEnglish.addEventListener('click',    () => clearAll(englishInput));
 
   // ── Copy Buttons ────────────────────────────────────────────────────────────
 
   function bindCopy(btnId, getContent) {
     const btn = document.getElementById(btnId);
+    if (!btn) return;
     btn.addEventListener('click', async () => {
       const text = getContent();
       if (!text || text === '—') return;
@@ -112,9 +147,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  bindCopy('copyIAST',    () => iastOutput.textContent);
-  bindCopy('copyTamil',   () => tamilOutput.textContent);
-  bindCopy('copyEnglish', () => englishOutput.textContent);
+  bindCopy('copyGrantha',    () => granthaInput.value);
+  bindCopy('copyDevanagari', () => devanagariInput.value);
+  bindCopy('copyTamil',      () => tamilInput.value);
+  bindCopy('copyEnglish',    () => englishInput.value);
+  bindCopy('copyIAST',       () => iastOutput.textContent);
 
   // ── Sample Word Buttons ──────────────────────────────────────────────────────
 
@@ -122,16 +159,25 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       const g = btn.dataset.grantha;
       const d = btn.dataset.devanagari;
+      const t = btn.dataset.tamil;
+      const e = btn.dataset.english;
 
       if (g) {
         granthaInput.value = g;
-        // Dispatch 'input' so the listener runs and updates everything
         granthaInput.dispatchEvent(new Event('input'));
         granthaInput.focus();
       } else if (d) {
         devanagariInput.value = d;
         devanagariInput.dispatchEvent(new Event('input'));
         devanagariInput.focus();
+      } else if (t) {
+        tamilInput.value = t;
+        tamilInput.dispatchEvent(new Event('input'));
+        tamilInput.focus();
+      } else if (e) {
+        englishInput.value = e;
+        englishInput.dispatchEvent(new Event('input'));
+        englishInput.focus();
       }
     });
   });
@@ -142,19 +188,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
-    themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
-    themeToggle.setAttribute('aria-label',
-      theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+    if (themeToggle) {
+      themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+      themeToggle.setAttribute('aria-label',
+        theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+    }
   }
 
   // Restore saved theme (fallback: dark)
   applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
 
-  themeToggle.addEventListener('click', () => {
-    const current = document.documentElement.getAttribute('data-theme');
-    const next    = current === 'dark' ? 'light' : 'dark';
-    applyTheme(next);
-    localStorage.setItem(THEME_KEY, next);
-  });
+  if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next    = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      localStorage.setItem(THEME_KEY, next);
+    });
+  }
 
 });
+
