@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grantha ↔ Devanagari Translator · IAST · Tamil · English</title>
+  <meta name="description"
+        content="Bidirectional Grantha and Devanagari Unicode translator. Converts to IAST, Tamil script, and English transliteration in real-time." />
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ══ Header ══════════════════════════════════════════════════════════════ -->
+  <header class="header" role="banner">
+    <div class="header-brand">
+      <img src="logo.svg" alt="Grantha Logo" width="36" height="36" style="vertical-align: middle;" />
+      <div class="header-info">
+        <h1>Grantha Translator</h1>
+        <p>Grantha ↔ Devanagari &nbsp;·&nbsp; IAST &nbsp;·&nbsp; Tamil &nbsp;·&nbsp; English</p>
+      </div>
+    </div>
+    <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark / light theme">🌙</button>
+  </header>
+
+  <!-- ══ Main Content ════════════════════════════════════════════════════════ -->
+  <main class="main" role="main">
+
+    <!-- ── Input Section ──────────────────────────────────────────────────── -->
+    <section class="input-section" aria-label="Script input panels">
+
+      <!-- Grantha input -->
+      <div class="input-panel" id="granthaPanel">
+        <div class="panel-header">
+          <span class="script-badge badge-grantha" aria-label="Grantha script">𑌗𑍍𑌰𑌨𑍍𑌥 &nbsp;Grantha</span>
+          <button id="clearGrantha" class="btn-clear" aria-label="Clear Grantha input">✕ Clear</button>
+        </div>
+        <textarea
+          id="granthaInput"
+          class="script-textarea grantha-textarea"
+          placeholder="𑌨𑌮𑌸𑍍𑌤𑍇 …"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          aria-label="Grantha script input"
+        ></textarea>
+        <div class="panel-hint">Paste or type Grantha Unicode text</div>
+      </div>
+
+      <!-- Divider with swap arrows -->
+      <div class="swap-divider" aria-hidden="true">
+        <div class="swap-line"></div>
+        <span class="swap-arrows">⇄</span>
+        <div class="swap-line"></div>
+      </div>
+
+      <!-- Devanagari input -->
+      <div class="input-panel" id="devanagariPanel">
+        <div class="panel-header">
+          <span class="script-badge badge-devanagari" aria-label="Devanagari script">देव &nbsp;Devanagari</span>
+          <button id="clearDevanagari" class="btn-clear" aria-label="Clear Devanagari input">✕ Clear</button>
+        </div>
+        <textarea
+          id="devanagariInput"
+          class="script-textarea devanagari-textarea"
+          placeholder="नमस्ते …"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          aria-label="Devanagari script input"
+        ></textarea>
+        <div class="panel-hint">Paste or type Devanagari Unicode text</div>
+      </div>
+
+    </section>
+
+    <!-- ── Output Cards ───────────────────────────────────────────────────── -->
+    <section class="output-section" aria-label="Translation output panels">
+
+      <!-- IAST card -->
+      <article class="output-card card-iast">
+        <div class="card-header">
+          <span class="card-label">IAST</span>
+          <span class="card-desc">International Alphabet of Sanskrit Transliteration</span>
+          <button id="copyIAST" class="btn-copy" aria-label="Copy IAST text">⧉ Copy</button>
+        </div>
+        <div id="iastOutput" class="card-body is-empty" aria-live="polite">—</div>
+      </article>
+
+      <!-- Tamil card -->
+      <article class="output-card card-tamil">
+        <div class="card-header">
+          <span class="card-label">தமிழ் Tamil</span>
+          <span class="card-desc">Tamil Unicode script</span>
+          <button id="copyTamil" class="btn-copy" aria-label="Copy Tamil text">⧉ Copy</button>
+        </div>
+        <div id="tamilOutput" class="card-body is-empty" aria-live="polite">—</div>
+      </article>
+
+      <!-- English card -->
+      <article class="output-card card-english">
+        <div class="card-header">
+          <span class="card-label">English</span>
+          <span class="card-desc">Simple ASCII transliteration</span>
+          <button id="copyEnglish" class="btn-copy" aria-label="Copy English transliteration">⧉ Copy</button>
+        </div>
+        <div id="englishOutput" class="card-body is-empty" aria-live="polite">—</div>
+      </article>
+
+    </section>
+
+    <!-- ── Info note ──────────────────────────────────────────────────────── -->
+    <div class="info-bar" role="note">
+      <span class="info-bar-icon">ℹ️</span>
+      <span>
+        Sanskrit&nbsp;<em>e</em>&nbsp;and&nbsp;<em>o</em> are always long in Grantha/Sanskrit context →
+        Tamil renders them as <span style="font-family:var(--font-t)">ே&nbsp;(ē)</span> and
+        <span style="font-family:var(--font-t)">ோ&nbsp;(ō)</span>.
+        Sanskrit-only sounds use Grantha-Tamil letters:
+        <span style="font-family:var(--font-t)">ஜ ஶ ஷ ஸ ஹ</span>
+      </span>
+    </div>
+
+    <!-- ── Sample Words ───────────────────────────────────────────────────── -->
+    <section class="samples-section" aria-label="Sample words">
+      <h2 class="samples-heading">Try a sample</h2>
+      <div class="samples-grid">
+
+        <button class="sample-btn" id="s1"
+                data-grantha="𑌨𑌮𑌸𑍍𑌤𑍇" aria-label="namaste">
+          <span class="sample-script sample-g">𑌨𑌮𑌸𑍍𑌤𑍇</span>
+          <span class="sample-label">namaste</span>
+        </button>
+
+        <button class="sample-btn" id="s2"
+                data-devanagari="ॐ" aria-label="om">
+          <span class="sample-script sample-d">ॐ</span>
+          <span class="sample-label">om</span>
+        </button>
+
+        <button class="sample-btn" id="s3"
+                data-grantha="𑌗𑍍𑌰𑌨𑍍𑌥" aria-label="grantha">
+          <span class="sample-script sample-g">𑌗𑍍𑌰𑌨𑍍𑌥</span>
+          <span class="sample-label">grantha</span>
+        </button>
+
+        <button class="sample-btn" id="s4"
+                data-devanagari="सरस्वती" aria-label="saraswati">
+          <span class="sample-script sample-d">सरस्वती</span>
+          <span class="sample-label">sarasvatī</span>
+        </button>
+
+        <button class="sample-btn" id="s5"
+                data-devanagari="भगवद्गीता" aria-label="bhagavadgita">
+          <span class="sample-script sample-d">भगवद्गीता</span>
+          <span class="sample-label">bhagavadgītā</span>
+        </button>
+
+        <button class="sample-btn" id="s6"
+                data-grantha="𑌶𑌿𑌵𑌾𑌯" aria-label="shivaya">
+          <span class="sample-script sample-g">𑌶𑌿𑌵𑌾𑌯</span>
+          <span class="sample-label">śivāya</span>
+        </button>
+
+        <button class="sample-btn" id="s7"
+                data-devanagari="श्रीमत्" aria-label="shrimat">
+          <span class="sample-script sample-d">श्रीमत्</span>
+          <span class="sample-label">śrīmat</span>
+        </button>
+
+        <button class="sample-btn" id="s8"
+                data-devanagari="धर्म" aria-label="dharma">
+          <span class="sample-script sample-d">धर्म</span>
+          <span class="sample-label">dharma</span>
+        </button>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══ Footer ══════════════════════════════════════════════════════════════ -->
+  <footer class="footer" role="contentinfo">
+    <p style="margin-bottom: 8px;">Made with ❤️ by S. S. Kabilan Deekshithar</p>
+    <p style="margin-bottom: 8px; font-family: var(--font-t);">ஆக்கம்: சு. சி. கபிலன் தீக்ஷிதர்</p>
+    <p style="margin-bottom: 8px; font-family: var(--font-g); font-size: 18px;">𑌆𑌕𑍍𑌕𑌮𑍍: 𑌸𑍁. 𑌸𑌿. 𑌕𑌬𑌿𑌲𑌨𑍍 𑌦𑍀𑌕𑍍𑌷𑌿𑌤𑌰𑍍</p>
+    <p style="font-family: var(--font-d); font-size: 16px;">आक्कम्: सु. सि. कपिलन् दीक्षितर्</p>
+  </footer>
+
+  <script src="translator.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
