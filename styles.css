@@ -634,3 +634,238 @@ body::before {
   .header { padding: 0 16px; margin-bottom: 28px; }
   .header-info h1 { font-size: 15px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Grantha On-Screen Keyboard
+   Samsung Sanskrit keyboard style · dark/light theme-aware · slide-up
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Keyboard-specific design tokens ──────────────────────────────────────── */
+:root {
+  /* Right panel — consonant keys */
+  --gk-bg:              #080c18;
+  --gk-border-top:      rgba(255,255,255,0.10);
+  --gk-gap:             5px;
+  --gk-cons-bg:         #1d2b44;
+  --gk-cons-bg-hover:   #243454;
+  --gk-cons-text:       #dce7f8;
+  --gk-cons-shadow:     0 3px 0 #05090f;
+  --gk-cons-border:     rgba(255,255,255,0.07);
+  /* Left panel — accent/matra keys */
+  --gk-accent-bg:       #140f03;
+  --gk-accent-bg-hover: #1e1706;
+  --gk-accent-text:     hsl(38,95%,68%);
+  --gk-accent-border:   hsl(38,60%,28%);
+  --gk-accent-shadow:   0 3px 0 #050300;
+  --gk-accent-active-bg: hsl(38,75%,22%);
+  /* Action keys */
+  --gk-action-bg:       #0d1525;
+  --gk-action-text:     #6b7fa0;
+  --gk-action-shadow:   0 3px 0 #040810;
+  /* Space bar */
+  --gk-space-bg:        #1d2b44;
+  --gk-space-text:      #8fa5c8;
+}
+
+[data-theme="light"] {
+  --gk-bg:              #cdd0d8;
+  --gk-border-top:      rgba(0,0,0,0.18);
+  --gk-cons-bg:         #ffffff;
+  --gk-cons-bg-hover:   #f0f4ff;
+  --gk-cons-text:       #1a2035;
+  --gk-cons-shadow:     0 3px 0 #9aa0af;
+  --gk-cons-border:     rgba(0,0,0,0.10);
+  --gk-accent-bg:       #1c1303;
+  --gk-accent-bg-hover: #251a04;
+  --gk-accent-text:     hsl(38,100%,72%);
+  --gk-accent-border:   hsl(38,60%,35%);
+  --gk-accent-shadow:   0 3px 0 #0a0801;
+  --gk-accent-active-bg: hsl(38,80%,28%);
+  --gk-action-bg:       #b5bac4;
+  --gk-action-text:     #374151;
+  --gk-action-shadow:   0 3px 0 #8a9199;
+  --gk-space-bg:        #ffffff;
+  --gk-space-text:      #4a5878;
+}
+
+/* ── Keyboard container ───────────────────────────────────────────────────── */
+.gk-keyboard {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--gk-bg);
+  border-top: 1px solid var(--gk-border-top);
+  box-shadow: 0 -6px 40px rgba(0,0,0,0.55);
+  padding: 8px var(--gk-gap) calc(8px + env(safe-area-inset-bottom, 0px)) var(--gk-gap);
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.gk-keyboard--visible {
+  transform: translateY(0);
+}
+
+/* Push page content up so the input box stays visible */
+body.gk-open {
+  padding-bottom: 330px;
+}
+
+/* ── Body: left + right panels side by side ───────────────────────────────── */
+.gk-body {
+  display: flex;
+  gap: var(--gk-gap);
+  margin-bottom: var(--gk-gap);
+}
+
+/* ── Left panel (3 cols × 5 rows — dynamic matra / vowel picker) ─────────── */
+.gk-left-panel {
+  flex: 0 0 29%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(5, 50px);
+  gap: var(--gk-gap);
+}
+
+/* ── Right panel (7 cols × 5 rows — consonant grid) ─────────────────────── */
+.gk-right-panel {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(5, 50px);
+  gap: var(--gk-gap);
+}
+
+/* ── Base key ─────────────────────────────────────────────────────────────── */
+.gk-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  font-family: var(--font-g), 'Noto Serif', serif;
+  line-height: 1;
+  padding: 0 2px;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.08s ease, transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.gk-key:active {
+  transform: scale(0.88);
+  filter: brightness(1.15);
+}
+
+/* ── Consonant keys ──────────────────────────────────────────────────────── */
+.gk-key--consonant {
+  background:  var(--gk-cons-bg);
+  color:       var(--gk-cons-text);
+  border:      1px solid var(--gk-cons-border);
+  box-shadow:  var(--gk-cons-shadow);
+  font-size:   19px;
+}
+.gk-key--consonant:hover { background: var(--gk-cons-bg-hover); }
+
+/* ── Accent keys (left panel — matras + standalone vowels) ───────────────── */
+.gk-key--accent {
+  background:  var(--gk-accent-bg);
+  color:       var(--gk-accent-text);
+  border:      1px solid var(--gk-accent-border);
+  box-shadow:  var(--gk-accent-shadow);
+  font-size:   13px;
+  letter-spacing: -0.5px;
+}
+.gk-key--accent:hover { background: var(--gk-accent-bg-hover); }
+
+/* Currently-applied matra highlight */
+.gk-key--accent-active {
+  background:   var(--gk-accent-active-bg) !important;
+  box-shadow:   0 0 10px hsl(38,95%,55%,0.40), var(--gk-accent-shadow);
+  border-color: hsl(38,80%,48%) !important;
+}
+
+/* ── Action keys (⌫, !#1, ↵, …) ─────────────────────────────────────────── */
+.gk-key--action {
+  background:  var(--gk-action-bg);
+  color:       var(--gk-action-text);
+  box-shadow:  var(--gk-action-shadow);
+  font-family: var(--font-ui);
+  font-size:   13px;
+  font-weight: 500;
+}
+.gk-key--backspace {
+  font-size:   20px;
+  font-family: system-ui, sans-serif;
+}
+
+/* ── Mode-switch buttons (VOW / CON / MAT) ────────────────────────────────── */
+.gk-mode-btn {
+  font-size:   11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  min-width:   42px;
+  text-transform: uppercase;
+  border:      1px solid transparent;
+}
+.gk-mode-btn--active {
+  background:   var(--gk-accent-active-bg) !important;
+  color:        hsl(38,95%,72%) !important;
+  border-color: hsl(38,80%,45%) !important;
+  box-shadow:   0 0 8px hsl(38,95%,55%,0.30), var(--gk-action-shadow);
+}
+
+/* ── Bottom bar ───────────────────────────────────────────────────────────── */
+.gk-bottom-bar {
+  display: flex;
+  gap: var(--gk-gap);
+  align-items: stretch;
+}
+.gk-bottom-bar .gk-key {
+  height: 46px;
+  flex:   0 0 auto;
+  min-width: 44px;
+}
+
+/* Space bar */
+.gk-key--space {
+  flex:        1 !important;
+  min-width:   0 !important;
+  background:  var(--gk-space-bg);
+  color:       var(--gk-space-text);
+  border:      1px solid var(--gk-cons-border);
+  box-shadow:  var(--gk-cons-shadow);
+  font-family: var(--font-ui);
+  font-size:   13px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: 9px;
+}
+
+.gk-danda  { font-size: 18px; font-family: var(--font-g), 'Noto Serif', serif; min-width: 46px; }
+.gk-enter  { font-size: 18px; font-family: system-ui, sans-serif; min-width: 46px; }
+.gk-globe,
+.gk-emoji  { font-size: 18px; font-family: system-ui, sans-serif; }
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .gk-left-panel  { grid-template-rows: repeat(5, 44px); }
+  .gk-right-panel { grid-template-rows: repeat(5, 44px); }
+  .gk-key--accent    { font-size: 11px; }
+  .gk-key--consonant { font-size: 16px; }
+  body.gk-open { padding-bottom: 300px; }
+}
+
+@media (min-width: 768px) {
+  .gk-left-panel  { grid-template-rows: repeat(5, 54px); }
+  .gk-right-panel { grid-template-rows: repeat(5, 54px); }
+  .gk-key--accent    { font-size: 15px; }
+  .gk-key--consonant { font-size: 21px; }
+  body.gk-open { padding-bottom: 370px; }
+}
+
