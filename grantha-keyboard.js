@@ -32,7 +32,7 @@ const GranthaKeyboard = (() => {
     ['𑌖', '𑌛', '𑌠', '𑌥', '𑌫', '𑌰', '𑌷'],
     ['𑌗', '𑌜', '𑌡', '𑌦', '𑌬', '𑌲', '𑌹'],
     ['𑌘', '𑌝', '𑌢', '𑌧', '𑌭', '𑌵', '𑌽'],
-    ['𑌙', '𑌞', '𑌣', '𑌨', '𑌮', '𑌸', null], // null = ⌫
+    ['𑌙', '𑌞', '𑌣', '𑌨', '𑌮', '𑌸', '𑌳'], // 𑌳 = Grantha ḷa
   ];
 
   const CONSONANT_SET = new Set([
@@ -111,6 +111,28 @@ const GranthaKeyboard = (() => {
     { char: '𑌃',  label: 'Visarga (ḥ)'      },
     { char: '𑌁',  label: 'Chandrabindu'     },
     { char: '𑍍',  label: 'Virama / Halanta' },
+  ];
+
+  /**
+   * SPC mode — special characters panel.
+   * 15 slots: first two populated, rest empty (to be filled later).
+   */
+  const SPECIAL_CHARS = [
+    { char: 'ஸ்ரீ', label: 'Tamil Śrī'         },
+    { char: '',     label: ''                   },
+    { char: '',     label: ''                   },
+    { char: '',     label: ''                   },
+    { char: '',     label: ''                   },
+    { char: '',     label: ''                   },
+    { char: '',     label: ''                   },
+    { char: '',     label: ''                   },
+    { char: '',     label: ''                   },
+    { char: '',     label: ''                   },
+    { char: '',     label: ''                   },
+    { char: '',     label: ''                   },
+    { char: '',     label: ''                   },
+    { char: '',     label: ''                   },
+    { char: '',     label: ''                   },
   ];
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -254,6 +276,10 @@ const GranthaKeyboard = (() => {
       // ── MAT mode: always show bare matra diacritics ─────────────────────
       renderStandaloneList(STANDALONE_MATRAS);
 
+    } else if (kbMode === 'spc') {
+      // ── SPC mode: special characters panel ──────────────────────────────
+      renderStandaloneList(SPECIAL_CHARS);
+
     } else {
       // ── CON mode: dynamic ───────────────────────────────────────────────
       if (lastConsonant) {
@@ -285,11 +311,17 @@ const GranthaKeyboard = (() => {
       btn.className = 'gk-key gk-key--accent';
       btn.type      = 'button';
       btn.textContent = item.char;
-      btn.setAttribute('aria-label', item.label);
-      btn.addEventListener('pointerdown', e => {
-        e.preventDefault();
-        handleStandaloneChar(item.char);
-      });
+      btn.setAttribute('aria-label', item.label || '');
+      if (item.char) {
+        btn.addEventListener('pointerdown', e => {
+          e.preventDefault();
+          handleStandaloneChar(item.char);
+        });
+      } else {
+        btn.disabled = true;
+        btn.style.opacity = '0';
+        btn.style.pointerEvents = 'none';
+      }
       leftPanelEl.appendChild(btn);
     });
   }
@@ -322,26 +354,16 @@ const GranthaKeyboard = (() => {
 
     CONSONANT_GRID.forEach(row => {
       row.forEach(char => {
-        if (char === null) {
-          const btn = document.createElement('button');
-          btn.className = 'gk-key gk-key--action gk-key--backspace';
-          btn.type = 'button';
-          btn.innerHTML = '&#x232B;';
-          btn.setAttribute('aria-label', 'Backspace');
-          btn.addEventListener('pointerdown', e => { e.preventDefault(); backspace(); });
-          rp.appendChild(btn);
-        } else {
-          const btn = document.createElement('button');
-          btn.className = 'gk-key gk-key--consonant';
-          btn.type = 'button';
-          btn.textContent = char;
-          btn.setAttribute('aria-label', char);
-          btn.addEventListener('pointerdown', e => {
-            e.preventDefault();
-            handleConsonant(char);
-          });
-          rp.appendChild(btn);
-        }
+        const btn = document.createElement('button');
+        btn.className = 'gk-key gk-key--consonant';
+        btn.type = 'button';
+        btn.textContent = char;
+        btn.setAttribute('aria-label', char);
+        btn.addEventListener('pointerdown', e => {
+          e.preventDefault();
+          handleConsonant(char);
+        });
+        rp.appendChild(btn);
       });
     });
 
@@ -352,11 +374,12 @@ const GranthaKeyboard = (() => {
     const bar = document.createElement('div');
     bar.className = 'gk-bottom-bar';
 
-    // ── Mode buttons: VOW | CON | MAT  (replace !#1 / 🌐 / 😊) ────────────
+    // ── Mode buttons: VOW | CON | MAT | SPC ─────────────────────────────────
     const modes = [
       { mode: 'vow', label: 'VOW', title: 'Vowels — show standalone vowels' },
       { mode: 'con', label: 'CON', title: 'Consonants — dynamic matra panel' },
       { mode: 'mat', label: 'MAT', title: 'Matras — show bare matra diacritics' },
+      { mode: 'spc', label: 'SPC', title: 'Special characters' },
     ];
 
     modes.forEach(({ mode, label, title }) => {
@@ -419,6 +442,15 @@ const GranthaKeyboard = (() => {
       updateLeftPanel();
     });
     bar.appendChild(enterBtn);
+
+    // ── Backspace ─────────────────────────────────────────────────────────────
+    const bkspBtn = document.createElement('button');
+    bkspBtn.className = 'gk-key gk-key--action gk-key--backspace';
+    bkspBtn.type = 'button';
+    bkspBtn.innerHTML = '&#x232B;';
+    bkspBtn.setAttribute('aria-label', 'Backspace');
+    bkspBtn.addEventListener('pointerdown', e => { e.preventDefault(); backspace(); });
+    bar.appendChild(bkspBtn);
 
     kb.appendChild(bar);
 
