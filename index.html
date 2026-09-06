@@ -77,6 +77,13 @@
       <div class="input-panel" id="tamilPanel">
         <div class="panel-header">
           <span class="script-badge badge-tamil" aria-label="Tamil script">தமிழ் &nbsp;Tamil</span>
+          <button id="tamilModeToggle"
+                  class="btn-tamil-mode"
+                  aria-label="Switch Tamil transliteration mode"
+                  title="Mode B: Numbered (க க₂ க₃ க₄) — click to switch">
+            <span class="tamil-mode-icon">𑀓</span>
+            <span class="tamil-mode-label">Numbered</span>
+          </button>
           <div class="panel-actions">
             <button id="copyTamil" class="btn-copy" aria-label="Copy Tamil text">⧉ Copy</button>
             <button id="clearTamil" class="btn-clear" aria-label="Clear Tamil input">✕ Clear</button>
@@ -91,7 +98,7 @@
           autocorrect="off"
           aria-label="Tamil script input"
         ></textarea>
-        <div class="panel-hint">Paste or type Tamil Unicode text</div>
+        <div class="panel-hint">Paste or type Tamil text · In Mode B, type க₃ for ग (g)</div>
       </div>
 
       <!-- English input -->
@@ -140,7 +147,10 @@
         Tamil renders them as <span style="font-family:var(--font-t)">ே&nbsp;(ē)</span> and
         <span style="font-family:var(--font-t)">ோ&nbsp;(ō)</span>.
         Sanskrit-only sounds use Grantha-Tamil letters:
-        <span style="font-family:var(--font-t)">ஜ ஶ ஷ ஸ ஹ</span>
+        <span style="font-family:var(--font-t)">ஜ ஶ ஷ ஸ ஹ</span>.
+        In <strong>Numbered mode</strong>, Sanskrit varga variants are marked:
+        <span style="font-family:var(--font-t)">க&nbsp;க₂&nbsp;க₃&nbsp;க₄</span>
+        (unvoiced · aspirated · voiced · voiced aspirated).
       </span>
     </div>
 

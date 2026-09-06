@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const iastOutput      = document.getElementById('iastOutput');
 
   const themeToggle     = document.getElementById('themeToggle');
+  const tamilModeToggle = document.getElementById('tamilModeToggle');
 
   const clearGrantha    = document.getElementById('clearGrantha');
   const clearDevanagari = document.getElementById('clearDevanagari');
@@ -44,6 +45,63 @@ document.addEventListener('DOMContentLoaded', () => {
     iastOutput.textContent = isEmpty ? '—' : text;
     iastOutput.classList.toggle('is-empty', isEmpty);
     flash(iastOutput);
+  }
+
+  // ── Tamil Mode A / B Toggle ───────────────────────────────────────────────────
+
+  const TAMIL_MODE_KEY = 'gd-translator-tamil-mode';
+
+  /**
+   * Apply a Tamil mode, update the toggle button appearance, persist to
+   * localStorage, inform the Translator engine, and re-render any current
+   * text through the Tamil output.
+   */
+  function applyTamilMode(mode) {
+    Translator.setTamilMode(mode);
+
+    if (tamilModeToggle) {
+      const isNumbered = (mode === 'numbered');
+      const modeLabel  = tamilModeToggle.querySelector('.tamil-mode-label');
+      if (modeLabel) modeLabel.textContent = isNumbered ? 'Numbered' : 'Standard';
+      tamilModeToggle.setAttribute('aria-label',
+        isNumbered
+          ? 'Tamil Mode B: Numbered (க க₂ க₃ க₄) — click to switch to Standard'
+          : 'Tamil Mode A: Standard (plain க) — click to switch to Numbered'
+      );
+      tamilModeToggle.title = isNumbered
+        ? 'Mode B: Numbered (க க₂ க₃ க₄) — click to switch'
+        : 'Mode A: Standard Tamil — click to switch';
+      tamilModeToggle.classList.toggle('mode-standard', !isNumbered);
+      tamilModeToggle.classList.toggle('mode-numbered',  isNumbered);
+    }
+
+    localStorage.setItem(TAMIL_MODE_KEY, mode);
+
+    // Re-render: find which panel has content and re-drive translation
+    if (busy) return;
+    busy = true;
+    try {
+      if (granthaInput.value.trim()) {
+        const r = Translator.fromGrantha(granthaInput.value);
+        tamilInput.value = r.tamil;
+        applyResult(r);
+      } else if (devanagariInput.value.trim()) {
+        const r = Translator.fromDevanagari(devanagariInput.value);
+        tamilInput.value = r.tamil;
+        applyResult(r);
+      } else if (englishInput.value.trim()) {
+        const r = Translator.fromEnglish(englishInput.value);
+        tamilInput.value = r.tamil;
+        applyResult(r);
+      } else if (tamilInput.value.trim()) {
+        // Tamil driving: re-tokenize with new mode output
+        const r = Translator.fromTamil(tamilInput.value);
+        tamilInput.value = r.tamil;
+        applyResult(r);
+      }
+    } finally {
+      busy = false;
+    }
   }
 
   // ── 4-Way Bidirectional Translation ─────────────────────────────────────────
@@ -204,6 +262,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const next    = current === 'dark' ? 'light' : 'dark';
       applyTheme(next);
       localStorage.setItem(THEME_KEY, next);
+    });
+  }
+
+  // ── Tamil Mode Restore & Toggle ───────────────────────────────────────────────
+
+  // Restore saved Tamil mode (default: 'numbered' = Mode B)
+  applyTamilMode(localStorage.getItem(TAMIL_MODE_KEY) || 'numbered');
+
+  if (tamilModeToggle) {
+    tamilModeToggle.addEventListener('click', () => {
+      const current = Translator.getTamilMode();
+      const next    = (current === 'numbered') ? 'standard' : 'numbered';
+      applyTamilMode(next);
     });
   }
 
