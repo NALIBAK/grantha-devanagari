@@ -8,7 +8,56 @@
  *   - Copy-to-clipboard for each script panel and IAST
  *   - Sample-word buttons
  *   - Dark / light theme toggle (persisted in localStorage)
+ *   - Auto-save textarea content to localStorage (survives back-button / reload)
+ *   - History API guard (first back-button press stays on page)
+ *   - Anonymous translation logging to Supabase (no Google, insert-only RLS)
  */
+
+// ── Supabase Analytics Config ──────────────────────────────────────────────────
+// anon/publishable key — safe to be in public code because RLS blocks all reads.
+// NEVER put the service_role key here.
+const SUPABASE_URL  = 'https://ixavrsafjjfpyidkkdom.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_54pPxPH9xkTTYcsdwuaYLQ_VGx_M6f0';
+
+// ── Translation Logger ─────────────────────────────────────────────────────────
+// Debounced: only fires 1.5 s after the user stops typing to avoid flooding.
+let _logTimer = null;
+
+async function logTranslation(inputScript, inputText, result) {
+  if (!inputText || inputText.trim().length < 2) return; // skip empty / single-char
+
+  clearTimeout(_logTimer);
+  _logTimer = setTimeout(async () => {
+    try {
+      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      await fetch(`${SUPABASE_URL}/rest/v1/translation_logs`, {
+        method : 'POST',
+        headers: {
+          'Content-Type' : 'application/json',
+          'apikey'       : SUPABASE_ANON,
+          'Authorization': `Bearer ${SUPABASE_ANON}`,
+          'Prefer'       : 'return=minimal'   // don't send body back — faster
+        },
+        body: JSON.stringify({
+          input_script : inputScript,
+          input_text   : inputText.trim(),
+          grantha_out  : result.grantha    || '',
+          devnagari_out: result.devanagari || '',
+          tamil_out    : result.tamil      || '',
+          english_out  : result.english    || '',
+          char_count   : inputText.trim().length,
+          device_type  : isMobile ? 'mobile' : 'desktop',
+          timezone     : Intl.DateTimeFormat().resolvedOptions().timeZone,
+          browser_lang : navigator.language || ''
+        })
+      });
+    } catch {
+      // Silently ignore — never break the translator because of a logging failure
+    }
+  }, 1500);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -26,6 +75,58 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearDevanagari = document.getElementById('clearDevanagari');
   const clearTamil      = document.getElementById('clearTamil');
   const clearEnglish    = document.getElementById('clearEnglish');
+
+  // ── Auto-save to localStorage (survives back button / page reload) ──────────
+  const SAVE_KEY = 'gd-translator-saved';
+
+  function saveState() {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      grantha   : granthaInput.value,
+      devanagari: devanagariInput.value,
+      tamil     : tamilInput.value,
+      english   : englishInput.value
+    }));
+  }
+
+  function restoreState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || '{}');
+      // Restore only one panel (the one that was the source), then let it
+      // drive the others via its input event.
+      if (saved.grantha && saved.grantha.trim()) {
+        granthaInput.value = saved.grantha;
+        granthaInput.dispatchEvent(new Event('input'));
+      } else if (saved.devanagari && saved.devanagari.trim()) {
+        devanagariInput.value = saved.devanagari;
+        devanagariInput.dispatchEvent(new Event('input'));
+      } else if (saved.tamil && saved.tamil.trim()) {
+        tamilInput.value = saved.tamil;
+        tamilInput.dispatchEvent(new Event('input'));
+      } else if (saved.english && saved.english.trim()) {
+        englishInput.value = saved.english;
+        englishInput.dispatchEvent(new Event('input'));
+      }
+    } catch { /* ignore corrupt saved data */ }
+  }
+
+  // ── History API Guard (back-button safety on mobile) ───────────────────────
+  // When the user starts typing, we push an extra history entry.
+  // First back-button press pops that entry (stays on the page).
+  // Second press actually leaves — giving users a chance to catch the mistake.
+  let historyGuardPushed = false;
+
+  function pushHistoryGuard() {
+    if (historyGuardPushed) return;
+    history.pushState({ gdGuard: true }, '');
+    historyGuardPushed = true;
+  }
+
+  window.addEventListener('popstate', (e) => {
+    if (e.state && e.state.gdGuard) {
+      // Guard entry was popped — reset so it can be pushed again if user retypes
+      historyGuardPushed = false;
+    }
+  });
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -118,6 +219,9 @@ document.addEventListener('DOMContentLoaded', () => {
       tamilInput.value      = result.tamil;
       englishInput.value    = result.english;
       applyResult(result);
+      saveState();
+      logTranslation('grantha', granthaInput.value, result);
+      if (granthaInput.value.trim().length > 0) pushHistoryGuard();
     } finally {
       busy = false;
     }
@@ -132,6 +236,9 @@ document.addEventListener('DOMContentLoaded', () => {
       tamilInput.value   = result.tamil;
       englishInput.value = result.english;
       applyResult(result);
+      saveState();
+      logTranslation('devanagari', devanagariInput.value, result);
+      if (devanagariInput.value.trim().length > 0) pushHistoryGuard();
     } finally {
       busy = false;
     }
@@ -146,6 +253,9 @@ document.addEventListener('DOMContentLoaded', () => {
       devanagariInput.value = result.devanagari;
       englishInput.value    = result.english;
       applyResult(result);
+      saveState();
+      logTranslation('tamil', tamilInput.value, result);
+      if (tamilInput.value.trim().length > 0) pushHistoryGuard();
     } finally {
       busy = false;
     }
@@ -160,6 +270,9 @@ document.addEventListener('DOMContentLoaded', () => {
       devanagariInput.value = result.devanagari;
       tamilInput.value      = result.tamil;
       applyResult(result);
+      saveState();
+      logTranslation('english', englishInput.value, result);
+      if (englishInput.value.trim().length > 0) pushHistoryGuard();
     } finally {
       busy = false;
     }
@@ -173,6 +286,8 @@ document.addEventListener('DOMContentLoaded', () => {
     tamilInput.value      = '';
     englishInput.value    = '';
     applyResult({ iast: '' });
+    localStorage.removeItem(SAVE_KEY);  // clear saved state so restore doesn't bring it back
+    historyGuardPushed = false;          // reset guard so next typing pushes it again
     if (focusTarget) focusTarget.focus();
   }
 
@@ -278,5 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-});
+  // ── Restore saved textarea content (must run after Tamil mode is set) ────────
+  restoreState();
 
+});
