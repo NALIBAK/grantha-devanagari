@@ -17,7 +17,7 @@
 // anon/publishable key — safe to be in public code because RLS blocks all reads.
 // NEVER put the service_role key here.
 const SUPABASE_URL  = 'https://ixavrsafjjfpyidkkdom.supabase.co';
-const SUPABASE_ANON = 'sb_publishable_54pPxPH9xkTTYcsdwuaYLQ_VGx_M6f0';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4YXZyc2FmampmcHlpZGtrZG9tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMTA5MjMsImV4cCI6MjEwNTU4NjkyM30.JwYlCbR-0V7fKUNriXUBf3Xo0cLO7wmVkzsrIv-q-G0';
 
 // ── Translation Logger ─────────────────────────────────────────────────────────
 // Debounced: only fires 1.5 s after the user stops typing to avoid flooding.
@@ -57,7 +57,38 @@ async function logTranslation(inputScript, inputText, result) {
   }, 1500);
 }
 
+// ── Online / Offline Guard ─────────────────────────────────────────────────────
+// Shows a full-screen overlay and disables all inputs when the device goes offline.
+// Automatically restores everything when connection returns.
+
+function setOfflineMode(isOffline) {
+  const overlay   = document.getElementById('offlineOverlay');
+  const inputs    = document.querySelectorAll('textarea, button:not(#offlineOverlay *)');
+
+  if (overlay) overlay.classList.toggle('visible', isOffline);
+
+  inputs.forEach(el => {
+    if (isOffline) {
+      el.setAttribute('disabled', '');
+      el.setAttribute('data-was-disabled', 'true');
+    } else {
+      // Only re-enable elements that we disabled (not ones disabled for other reasons)
+      if (el.getAttribute('data-was-disabled')) {
+        el.removeAttribute('disabled');
+        el.removeAttribute('data-was-disabled');
+      }
+    }
+  });
+}
+
+window.addEventListener('online',  () => setOfflineMode(false));
+window.addEventListener('offline', () => setOfflineMode(true));
+
+// Check immediately on page load
+if (!navigator.onLine) setOfflineMode(true);
+
 // ─────────────────────────────────────────────────────────────────────────────
+
 
 document.addEventListener('DOMContentLoaded', () => {
 
