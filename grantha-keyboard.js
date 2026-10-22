@@ -118,21 +118,21 @@ const GranthaKeyboard = (() => {
    * 15 slots: first two populated, rest empty (to be filled later).
    */
   const SPECIAL_CHARS = [
-    { char: 'ஸ்ரீ', label: 'Tamil Śrī'         },
-    { char: '',     label: ''                   },
-    { char: '',     label: ''                   },
-    { char: '',     label: ''                   },
-    { char: '',     label: ''                   },
-    { char: '',     label: ''                   },
-    { char: '',     label: ''                   },
-    { char: '',     label: ''                   },
-    { char: '',     label: ''                   },
-    { char: '',     label: ''                   },
-    { char: '',     label: ''                   },
-    { char: '',     label: ''                   },
-    { char: '',     label: ''                   },
-    { char: '',     label: ''                   },
-    { char: '',     label: ''                   },
+    { char: 'ஸ்ரீ', label: 'Tamil Śrī'          },
+    { char: '𑍐',    label: 'Grantha OM'          },
+    { char: '𑌕𑍍𑌷',  label: 'Grantha kṣa (क्ष)'  },
+    { char: '𑌶𑍍𑌰',  label: 'Grantha śra (श्र)'  },
+    { char: '𑌽',    label: 'Grantha Avagraha'   },
+    { char: '௧',    label: 'Tamil digit 1'       },
+    { char: '௨',    label: 'Tamil digit 2'       },
+    { char: '௩',    label: 'Tamil digit 3'       },
+    { char: '௪',    label: 'Tamil digit 4'       },
+    { char: '௫',    label: 'Tamil digit 5'       },
+    { char: '௬',    label: 'Tamil digit 6'       },
+    { char: '௭',    label: 'Tamil digit 7'       },
+    { char: '௮',    label: 'Tamil digit 8'       },
+    { char: '௯',    label: 'Tamil digit 9'       },
+    { char: '௦',    label: 'Tamil digit 0'       },
   ];
 
   // ═══════════════════════════════════════════════════════════════════════════

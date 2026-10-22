@@ -33,6 +33,18 @@ const Translator = (() => {
   const D_OM           = 'ॐ';   // U+0950
   const D_AVAGRAHA     = 'ऽ';   // U+093D
 
+  // ── Tamil digits (U+0BE7–U+0BEF, U+0BE6) ─────────────────────────────────
+  /** Map: Tamil digit char → ASCII digit char (0–9) */
+  const TAMIL_DIGIT_TO_ASCII = new Map([
+    ['௧','1'],['௨','2'],['௩','3'],['௪','4'],['௫','5'],
+    ['௬','6'],['௭','7'],['௮','8'],['௯','9'],['௦','0'],
+  ]);
+  /** Map: ASCII digit char → Devanagari digit char */
+  const ASCII_TO_DEVA_DIGIT = new Map([
+    ['1','१'],['2','२'],['3','३'],['4','४'],['5','५'],
+    ['6','६'],['7','७'],['8','८'],['9','९'],['0','०'],
+  ]);
+
   // ═══════════════════════════════════════════════════════════════════════════
   //  Grantha → IAST Maps
   // ═══════════════════════════════════════════════════════════════════════════
@@ -137,21 +149,10 @@ const Translator = (() => {
   ]);
   const IT_MATRA = new Map([
     ['ā','ா'],['i','ி'],['ī','ீ'],['u','ு'],['ū','ூ'],
-    ['ṛ','ு'],['ṝ','ூ'],['e','ே'],['ai','ை'],['o','ோ'],['au','ௌ'],
+    ['e','ே'],['ai','ை'],['o','ோ'],['au','ௌ'],
   ]);
 
-  /* ── Mode A: Standard Tamil (plain consonants) ── */
-  const IT_CONS = new Map([
-    ['k','க'],['kh','க'],['g','க'],['gh','க'],['ṅ','ங'],
-    ['c','ச'],['ch','ச'],['j','ஜ'],['jh','ஜ'],['ñ','ஞ'],
-    ['ṭ','ட'],['ṭh','ட'],['ḍ','ட'],['ḍh','ட'],['ṇ','ண'],
-    ['t','த'],['th','த'],['d','த'],['dh','த'],['n','ந'],
-    ['p','ப'],['ph','ப'],['b','ப'],['bh','ப'],['m','ம'],
-    ['y','ய'],['r','ர'],['l','ல'],['ḷc','ள'],['ḻ','ழ'],
-    ['v','வ'],['ś','ஶ'],['ṣ','ஷ'],['s','ஸ'],['h','ஹ'],
-  ]);
-
-  /* ── Mode B: Numbered Tamil (Sanskrit varga subscript notation) ──
+  /* ── Numbered Tamil (Sanskrit varga subscript notation) ──
      Sound 1 (alpapraṇa / unvoiced unaspirated): plain base letter (traditional print style)
      Sound 2 (mahāpraṇa / unvoiced aspirated):   base + ₂
      Sound 3 (ghosa / voiced unaspirated):        base + ₃
@@ -165,17 +166,6 @@ const Translator = (() => {
     ['y','ய'],  ['r','ர'],   ['l','ல'],  ['ḷc','ள'],  ['ḻ','ழ'],
     ['v','வ'],  ['ś','ஶ'],   ['ṣ','ஷ'],  ['s','ஸ'],   ['h','ஹ'],
   ]);
-
-  /* ── Tamil Mode state (default: 'numbered' = Mode B) ── */
-  let _tamilMode = 'numbered'; // 'standard' | 'numbered'
-
-  function setTamilMode(mode) {
-    _tamilMode = (mode === 'standard') ? 'standard' : 'numbered';
-  }
-
-  function getTamilMode() {
-    return _tamilMode;
-  }
 
   /* ── Subscript digit → variant offset map (for bidirectional input parsing) ──
      ₁ = variant 1 (same as plain), ₂ = variant 2, ₃ = variant 3, ₄ = variant 4
@@ -252,7 +242,12 @@ const Translator = (() => {
 
       // ── Avagraha ───────────────────────────────────────────────────────────
       if (ch === G_AVAGRAHA || ch === D_AVAGRAHA) {
-        tokens.push({ type:'other', value:'\'' }); i++; continue;
+        tokens.push({ type:'avagraha' }); i++; continue;
+      }
+
+      // ── Tamil / Grantha digits ─────────────────────────────────────────────
+      if (TAMIL_DIGIT_TO_ASCII.has(ch)) {
+        tokens.push({ type:'digit', value: TAMIL_DIGIT_TO_ASCII.get(ch) }); i++; continue;
       }
 
       // ── Consonant (+ optional conjunct chain + optional vowel sign) ────────
@@ -327,6 +322,13 @@ const Translator = (() => {
           else out += tok.value; break;
         case 'special':
           out += G_OM; break;
+        case 'avagraha':
+          out += G_AVAGRAHA; break;      // 𑌽
+        case 'digit':
+          // Grantha manuscripts use Tamil numerals — keep Tamil digit
+          for (const [tamil, ascii] of TAMIL_DIGIT_TO_ASCII)
+            if (ascii === tok.value) { out += tamil; break; }
+          break;
         default:
           out += tok.value;
       }
@@ -354,6 +356,10 @@ const Translator = (() => {
           else out += tok.value; break;
         case 'special':
           out += D_OM; break;
+        case 'avagraha':
+          out += D_AVAGRAHA; break;     // ऽ
+        case 'digit':
+          out += ASCII_TO_DEVA_DIGIT.get(tok.value) ?? tok.value; break; // १–०
         default:
           out += tok.value;
       }
@@ -364,37 +370,58 @@ const Translator = (() => {
   function renderTamil(tokens) {
     const T_VIRAMA  = '்';
     const T_VISARGA = 'ஃ';
-    // Choose consonant map based on current mode
-    const consMap = (_tamilMode === 'numbered') ? IT_CONS_NUMBERED : IT_CONS;
+    // Subscript digit → ASCII char for ṛ-matra variant suffix
+    const SUB_TO_ASCII = { '₂':'2', '₃':'3', '₄':'4' };
     let out = '';
+
     for (const tok of tokens) {
       switch (tok.type) {
         case 'syllable': {
-          // In numbered mode each rendered consonant may carry a subscript digit
-          // suffix (e.g. 'க₃').  Virama must go between the BASE Tamil letter
-          // and the next consonant unit, not after the digit.
-          // Algorithm per unit:  split into (tamilBase, suffix) where suffix is
-          // any trailing non-Tamil codepoints (subscript/superscript digits).
-          // Emit: baseLetter₁ + suffix₁ + virama + baseLetter₂ + suffix₂ + …
-          if (_tamilMode === 'numbered') {
-            let cluster = '';
-            const rendered = tok.consonants.map(c => consMap.get(c) ?? '');
-            for (let ci = 0; ci < rendered.length; ci++) {
-              const cps = [...rendered[ci]];
-              // Partition into Tamil base (first Tamil codepoint) + subscript tail
-              const baseIdx = cps.findIndex(ch => ch >= '\u0B80' && ch <= '\u0BFF');
-              const tBase   = baseIdx >= 0 ? cps[baseIdx] : (cps[0] ?? '');
-              const tSuffix = cps.slice(baseIdx + 1).join('');
-              if (ci > 0) cluster += T_VIRAMA;
-              cluster += tBase + tSuffix;
+          // Parse each consonant into { tBase, tSuffix } from IT_CONS_NUMBERED
+          const parts = tok.consonants.map(c => {
+            const r    = IT_CONS_NUMBERED.get(c) ?? '';
+            const cps  = [...r];
+            const bi   = cps.findIndex(ch => ch >= '\u0B80' && ch <= '\u0BFF');
+            const tBase   = bi >= 0 ? cps[bi] : (cps[0] ?? '');
+            const tSuffix = cps.slice(bi + 1).join(''); // '' | '₂' | '₃' | '₄'
+            return { tBase, tSuffix };
+          });
+
+          if (tok.vowel === 'ṛ' || tok.vowel === 'ṝ') {
+            // ṛ / ṝ matra → [consonant-cluster]்ரு/ரூ + variant-digit
+            // e.g. kha+ṛ → க்ரு2  ;  ṅa+ṛ → ங்ரு (no digit)
+            const longU = tok.vowel === 'ṝ';
+            for (let ci = 0; ci < parts.length; ci++) {
+              if (ci > 0) out += T_VIRAMA;
+              out += parts[ci].tBase;
+              if (ci < parts.length - 1) out += parts[ci].tSuffix;
             }
-            out += cluster;
+            out += T_VIRAMA + 'ர' + (longU ? 'ூ' : 'ு');
+            const last = parts[parts.length - 1];
+            if (last.tSuffix) {
+              // ₂/₃/₄ → ASCII 2/3/4
+              out += SUB_TO_ASCII[last.tSuffix] ?? last.tSuffix;
+            } else if (T_CONS_VARIANTS.has(last.tBase)) {
+              // Variant 1 (no subscript but base has variants) → show '1'
+              out += '1';
+            }
+            // Unique consonant (not in T_CONS_VARIANTS): no digit
           } else {
-            const cons = tok.consonants.map(c => consMap.get(c) ?? '');
-            out += cons.join(T_VIRAMA);
+            // Normal matra — subscript goes AFTER matra (not between consonant & matra)
+            for (let ci = 0; ci < parts.length; ci++) {
+              if (ci > 0) out += T_VIRAMA;
+              out += parts[ci].tBase;
+              if (ci < parts.length - 1) out += parts[ci].tSuffix;
+            }
+            const last = parts[parts.length - 1];
+            if (tok.vowel === '') {
+              out += T_VIRAMA + last.tSuffix;
+            } else if (tok.vowel !== 'a') {
+              out += (IT_MATRA.get(tok.vowel) ?? '') + last.tSuffix;
+            } else {
+              out += last.tSuffix; // inherent 'a': suffix after bare consonant
+            }
           }
-          if      (tok.vowel === '')  out += T_VIRAMA;
-          else if (tok.vowel !== 'a') out += IT_MATRA.get(tok.vowel) ?? '';
           break;
         }
         case 'vowel':
@@ -405,6 +432,12 @@ const Translator = (() => {
           else out += tok.value; break;
         case 'special':
           out += 'ௐ'; break;
+        case 'avagraha':
+          out += 'ऽ'; break;
+        case 'digit':
+          for (const [tamil, ascii] of TAMIL_DIGIT_TO_ASCII)
+            if (ascii === tok.value) { out += tamil; break; }
+          break;
         default:
           out += tok.value;
       }
@@ -426,6 +459,8 @@ const Translator = (() => {
         case 'vowel':    out += tok.vowel; break;
         case 'modifier': out += tok.value; break;
         case 'special':  out += 'oṃ'; break;
+        case 'avagraha': out += 'ʼ'; break;   // U+02BC modifier letter apostrophe (standard IAST)
+        case 'digit':    out += tok.value; break; // ASCII 1–0
         default:         out += tok.value;
       }
     }
@@ -449,6 +484,8 @@ const Translator = (() => {
           else if (tok.value === 'ḥ')  out += 'h';
           else out += tok.value; break;
         case 'special':  out += 'om'; break;
+        case 'avagraha': out += "'"; break;   // plain apostrophe
+        case 'digit':    out += tok.value; break; // ASCII 1–0
         default:         out += tok.value;
       }
     }
@@ -482,6 +519,23 @@ const Translator = (() => {
     ['ல','l'],  ['ள','ḷc'], ['ழ','ḻ'],  ['வ','v'],
     ['ஶ','ś'],  ['ஷ','ṣ'],  ['ஸ','s'],  ['ஹ','h'],  ['ஜ','j'],
   ]);
+
+  /**
+   * IAST key → Tamil base letter (for ṛ-matra reverse resolution and resolveVariant).
+   * Built from T_CONS_VARIANTS + T_CONSONANTS at module load time.
+   */
+  const IAST_TO_TAMIL_BASE = (() => {
+    const m = new Map();
+    // From variant table: all four variant IAST keys map to the same Tamil base
+    for (const [tamilChar, variants] of T_CONS_VARIANTS) {
+      for (const key of variants) m.set(key, tamilChar);
+    }
+    // Unique consonants not in variant table
+    for (const [tamilChar, iastKey] of T_CONSONANTS) {
+      if (!m.has(iastKey)) m.set(iastKey, tamilChar);
+    }
+    return m;
+  })();
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  Public API
@@ -529,15 +583,8 @@ const Translator = (() => {
       if (!SUB_DIGITS.has(nextCh)) return { key: baseKey, advance: 0 };
       const variantNum = SUB_DIGITS.get(nextCh); // 1, 2, 3, or 4
 
-      // Find the Tamil base letter that this IAST key maps to
-      // so we can look up T_CONS_VARIANTS.
-      // We need the Tamil base letter: scan IT_CONS map.
-      const tamilBase = (() => {
-        for (const [iastKey, tamilChar] of IT_CONS) {
-          if (iastKey === baseKey) return tamilChar;
-        }
-        return null;
-      })();
+      // Use the precomputed IAST→Tamil-base map
+      const tamilBase = IAST_TO_TAMIL_BASE.get(baseKey) ?? null;
 
       if (!tamilBase || !T_CONS_VARIANTS.has(tamilBase)) {
         return { key: baseKey, advance: 0 };
@@ -554,6 +601,11 @@ const Translator = (() => {
       if (ch === T_VISARGA) { tokens.push({ type:'modifier', value:'ḥ' }); i++; continue; }
       if (ch === T_OM)      { tokens.push({ type:'special',  value:'oṃ' }); i++; continue; }
 
+      // Tamil digits typed into Tamil input field
+      if (TAMIL_DIGIT_TO_ASCII.has(ch)) {
+        tokens.push({ type:'digit', value: TAMIL_DIGIT_TO_ASCII.get(ch) }); i++; continue;
+      }
+
       if (T_CONSONANTS.has(ch)) {
         // Resolve possible subscript variant digit immediately after consonant
         const raw0 = T_CONSONANTS.get(ch);
@@ -561,12 +613,15 @@ const Translator = (() => {
         const consList = [r0.key];
         i += 1 + r0.advance;  // consonant char + optional digit char
 
-        // Consume virama + next consonant chains (conjuncts)
+        // Consume virama + next consonant chains (conjuncts).
+        // STOP before virama+ர+ு/ூ which signals ṛ/ṝ matra, not a conjunct.
         while (
           i < n &&
           chars[i] === T_VIRAMA &&
           i + 1 < n &&
-          T_CONSONANTS.has(chars[i + 1])
+          T_CONSONANTS.has(chars[i + 1]) &&
+          !(chars[i + 1] === 'ர' && i + 2 < n &&
+            (chars[i + 2] === 'ு' || chars[i + 2] === 'ூ')) // not ṛ/ṝ matra
         ) {
           i++; // consume virama
           const rawN = T_CONSONANTS.get(chars[i]);
@@ -576,7 +631,30 @@ const Translator = (() => {
         }
 
         let vowel = 'a';
-        if (i < n && chars[i] === T_VIRAMA) {
+
+        // ṛ/ṝ matra pattern: ் + ர + ு/ூ + optional-digit
+        if (i < n && chars[i] === T_VIRAMA &&
+            i + 1 < n && chars[i + 1] === 'ர' &&
+            i + 2 < n && (chars[i + 2] === 'ு' || chars[i + 2] === 'ூ')) {
+          const isLong = chars[i + 2] === 'ூ';
+          i += 3; // consume ் + ர + ு/ூ
+          // Optionally consume variant digit (ASCII 1-4 or subscript ₁-₄)
+          const lastKey   = consList[consList.length - 1];
+          const tamilBase = IAST_TO_TAMIL_BASE.get(lastKey);
+          if (i < n && SUB_DIGITS.has(chars[i])) {
+            const vNum = SUB_DIGITS.get(chars[i]);
+            i++; // consume digit
+            if (tamilBase && T_CONS_VARIANTS.has(tamilBase)) {
+              consList[consList.length - 1] =
+                T_CONS_VARIANTS.get(tamilBase)[vNum - 1] ?? lastKey;
+            }
+          } else if (tamilBase && T_CONS_VARIANTS.has(tamilBase)) {
+            // No digit but base has variants → default to variant 1
+            consList[consList.length - 1] = T_CONS_VARIANTS.get(tamilBase)[0];
+          }
+          vowel = isLong ? 'ṝ' : 'ṛ';
+
+        } else if (i < n && chars[i] === T_VIRAMA) {
           vowel = '';
           i++;
         } else if (i < n && T_MATRAS.has(chars[i])) {
@@ -716,6 +794,6 @@ const Translator = (() => {
     return { grantha:'', devanagari:'', iast:'', tamil:'', english:'' };
   }
 
-  return { fromGrantha, fromDevanagari, fromTamil, fromEnglish, setTamilMode, getTamilMode };
+  return { fromGrantha, fromDevanagari, fromTamil, fromEnglish };
 })();
 
